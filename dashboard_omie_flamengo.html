@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Performance — Omie Flamengo S1 Abr/2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F7FA;--surface:#FFFFFF;--s2:#F0F4F8;--s3:#E8EDF3;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.04);
+  --cyan:#007A85;--cyan-d:rgba(0,122,133,0.10);
+  --navy:#0B1C2C;--muted:#7A8FA6;--muted2:#B8C8D8;--text:#3A4E63;
+  --green:#16A34A;--green-d:rgba(22,163,74,0.10);
+  --red:#DC2626;--red-d:rgba(220,38,38,0.10);
+  --blue:#2563EB;--blue-d:rgba(37,99,235,0.10);
+  --purple:#7C3AED;--gold:#CA8A04;--orange:#EA580C;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--s2);}
+::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:10px;}
+
+/* ── HEADER ── */
+.header{background:var(--navy);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;position:sticky;top:0;z-index:200;}
+.h-left{display:flex;align-items:center;gap:1.1rem;}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:600;color:#00C8D4;}
+.h-div{width:1px;height:16px;background:rgba(255,255,255,0.15);}
+.h-title{font-size:.72rem;font-weight:400;color:rgba(255,255,255,0.45);}
+.h-right{display:flex;align-items:center;gap:.9rem;}
+.h-badge{background:rgba(0,200,212,0.15);border:1px solid rgba(0,200,212,0.25);color:#00C8D4;border-radius:4px;padding:3px 10px;font-size:.67rem;font-weight:600;letter-spacing:.8px;font-family:'IBM Plex Mono',monospace;}
+.h-meta{font-size:.63rem;color:rgba(255,255,255,0.3);font-family:'IBM Plex Mono',monospace;}
+
+/* ── NAV ── */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 2rem;overflow-x:auto;}
+.nav::-webkit-scrollbar{height:0;}
+.nav-btn{padding:0 1rem;height:40px;font-size:.67rem;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:color .15s,border-color .15s;}
+.nav-btn:hover{color:var(--navy);}
+.nav-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+
+/* ── MAIN ── */
+.main{padding:1.4rem 2rem;max-width:1440px;margin:0 auto;}
+.view{display:none;}.view.active{display:block;}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:1.4rem;}
+.kpi-cell{background:var(--surface);padding:.95rem 1.1rem;transition:background .15s;}
+.kpi-cell:hover{background:var(--s2);}
+.kpi-label{font-size:.61rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;}
+.kpi-num{font-family:'IBM Plex Mono',monospace;font-size:1.85rem;font-weight:600;color:var(--navy);line-height:1;margin-bottom:.28rem;}
+.kpi-num.lg{font-size:2.3rem;}.kpi-num.cyan{color:var(--cyan);}
+.delta{display:inline-flex;align-items:center;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:500;padding:2px 6px;border-radius:3px;}
+.delta.up{color:var(--green);background:var(--green-d);}
+.delta.down{color:var(--red);background:var(--red-d);}
+.delta.flat{color:var(--muted);background:rgba(0,0,0,.04);}
+.kpi-sub{font-size:.6rem;color:var(--muted);margin-top:.28rem;font-family:'IBM Plex Mono',monospace;}
+
+/* ── PANELS ── */
+.panels{display:grid;gap:1rem;margin-bottom:1rem;}
+.p2{grid-template-columns:1fr 1fr;}
+.p3{grid-template-columns:1fr 1fr 1fr;}
+.p64{grid-template-columns:1.55fr 1fr;}
+@media(max-width:800px){.p2,.p3,.p64{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ph{padding:.65rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.pt{font-size:.63rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);}
+.ptag{font-family:'IBM Plex Mono',monospace;font-size:.62rem;font-weight:600;color:var(--cyan);background:var(--cyan-d);border-radius:3px;padding:2px 7px;}
+.pb{padding:1rem;}
+
+/* ── CHARTS ── */
+.cb{position:relative;}
+.h140{height:140px;}.h180{height:180px;}.h220{height:220px;}.h260{height:260px;}
+
+/* ── RANK LIST ── */
+.rl{list-style:none;}
+.ri{padding:.55rem 0;border-bottom:1px solid var(--border2);}
+.ri:last-child{border-bottom:none;}
+.rt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.35rem;}
+.rn{font-size:.78rem;font-weight:500;color:var(--text);}
+.rr{display:flex;align-items:baseline;gap:.4rem;}
+.rv{font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:600;color:var(--navy);}
+.rp{font-family:'IBM Plex Mono',monospace;font-size:.63rem;color:var(--muted);}
+.bar{height:2px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.bi{height:100%;border-radius:2px;transition:width .9s cubic-bezier(.4,0,.2,1);}
+
+/* ── STAGE LIST ── */
+.sl{list-style:none;}
+.si{display:flex;align-items:center;justify-content:space-between;padding:.48rem 0;border-bottom:1px solid var(--border2);}
+.si:last-child{border-bottom:none;}
+.sn{font-size:.78rem;color:var(--text);}
+.sp{font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:600;padding:2px 9px;border-radius:3px;min-width:28px;text-align:center;}
+.s-ap{background:#E0F2FE;color:#0369A1;}
+.s-ne{background:#EDE9FE;color:#6D28D9;}
+.s-co{background:#DCFCE7;color:#15803D;}
+.s-pe{background:#F3F4F6;color:#6B7280;}
+.s-qu{background:#DBEAFE;color:#1D4ED8;}
+.s-ag{background:#FEF3C7;color:#92400E;}
+.s-ns{background:#FEE2E2;color:#B91C1C;}
+.s-ec{background:#FFF7ED;color:#C2410C;}
+.s-ca{background:#EDE9FE;color:#6D28D9;}
+.s-su{background:#F0FDF4;color:#166534;}
+
+/* ── FILTERS ── */
+.filters{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;}
+.fb{height:26px;padding:0 11px;border-radius:4px;border:1px solid var(--border);background:transparent;font-size:.65rem;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.fb:hover{border-color:var(--cyan);color:var(--cyan);}
+.fb.on{background:var(--cyan-d);border-color:rgba(0,122,133,.3);color:var(--cyan);}
+.fb.ob{background:var(--blue-d);border-color:rgba(37,99,235,.3);color:var(--blue);}
+.db{display:none;}.db.show{display:block;}
+.sec-h{font-size:.61rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:1.4rem 0 .9rem;border-left:2px solid var(--cyan);padding-left:.6rem;}
+
+/* ── INFO BANNER ── */
+.info-banner{background:var(--cyan-d);border:1px solid rgba(0,122,133,.2);border-radius:8px;padding:.7rem 1rem;margin-bottom:1.4rem;display:flex;align-items:center;gap:.7rem;}
+.info-banner span{font-size:.75rem;color:var(--cyan);font-weight:500;}
+
+/* ── TABLE ── */
+.ht{width:100%;border-collapse:collapse;}
+.ht th{text-align:left;padding:.42rem .7rem;font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.ht td{padding:.5rem .7rem;border-bottom:1px solid var(--border2);font-family:'IBM Plex Mono',monospace;font-size:.73rem;color:var(--text);}
+.ht tr:last-child td{border-bottom:none;}
+.ht tr:hover td{background:var(--s2);}
+.td-l{font-family:'Inter',sans-serif!important;font-size:.76rem!important;color:var(--navy)!important;font-weight:500!important;}
+
+/* ── MONTH CHIPS ── */
+.mc{display:flex;gap:.45rem;flex-wrap:wrap;}
+.mchip{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:.4rem .8rem;text-align:center;}
+.mlb{font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px;}
+.mv{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;font-weight:600;color:var(--cyan);}
+.mv.hi{color:var(--green);}
+
+/* ── FONTE ── */
+.fonte{margin-top:1.6rem;padding:.5rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);text-align:center;letter-spacing:.3px;}
+
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.panel,.kpi-row,.info-banner{animation:fi .25s ease both;}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="h-left">
+    <span class="logo">omie</span>
+    <span class="h-div"></span>
+    <span class="h-title">Painel de Performance · Unid. Flamengo / RJ · SDR: Alan Lira</span>
+  </div>
+  <div class="h-right">
+    <span class="h-badge">S1 · ABR/2026</span>
+    <span class="h-meta">01–04/04/2026</span>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="go('geral',this)">Visão Geral</button>
+  <button class="nav-btn" onclick="go('inbound',this)">Inbound</button>
+  <button class="nav-btn" onclick="go('outbound',this)">Outbound</button>
+  <button class="nav-btn" onclick="go('leads',this)">Leads Indicados</button>
+  <button class="nav-btn" onclick="go('aberto',this)">Em Aberto</button>
+  <button class="nav-btn" onclick="go('exec',this)">Executivos</button>
+  <button class="nav-btn" onclick="go('hist',this)">Histórico</button>
+</nav>
+
+<main class="main">
+
+<!-- ══ VISÃO GERAL ══ -->
+<div class="view active" id="view-geral">
+
+  <div class="info-banner">
+    <span>⚡ S1 Abril/2026 — EV: Alexsando Morais (único). Yasmin Fernandes aparece em leads em aberto herdados.</span>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi-cell"><div class="kpi-label">Total em Aberto</div><div class="kpi-num lg">28</div><div class="kpi-sub">In 12 · Out 16</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Em Apresentação</div><div class="kpi-num">6</div><div class="kpi-sub">In 2 · Out 4</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Em Negociação</div><div class="kpi-num">9</div><div class="kpi-sub">In 6 · Out 3</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Taxa Negociação</div><div class="kpi-num cyan">32%</div><div class="kpi-sub">In 50% · Out 19%</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Inbound S1</div><div class="kpi-num">1</div><div class="kpi-sub">01–04/04</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Outbound S1</div><div class="kpi-num">2</div><div class="kpi-sub">01–04/04</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Leads Indicados S1</div><div class="kpi-num">2</div><div class="kpi-sub">ambos Convertido</div></div>
+    <div class="kpi-cell"><div class="kpi-label">EV Ativo</div><div class="kpi-num cyan" style="font-size:1rem;padding-top:.3rem;">Alex</div><div class="kpi-sub">Alexsando Morais</div></div>
+  </div>
+
+  <div class="panels p64">
+    <div class="panel">
+      <div class="ph"><span class="pt">Funil em Aberto — Inbound + Outbound</span><span class="ptag">28 leads</span></div>
+      <div class="pb"><div class="cb h260"><canvas id="cFunil"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Aberto por EC</span><span class="ptag">3 ECs</span></div>
+      <div class="pb">
+        <div class="cb h140" style="margin-bottom:1rem"><canvas id="cAbertoEC"></canvas></div>
+        <ul class="rl">
+          <li class="ri"><div class="rt"><span class="rn">Lucas Barros</span><div class="rr"><span class="rv">13</span><span class="rp">46%</span></div></div><div class="bar"><div class="bi" style="width:46%;background:var(--blue)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Aisy Lyra</span><div class="rr"><span class="rv">9</span><span class="rp">32%</span></div></div><div class="bar"><div class="bi" style="width:32%;background:var(--cyan)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Rayana Vasconcelos</span><div class="rr"><span class="rv">6</span><span class="rp">21%</span></div></div><div class="bar"><div class="bi" style="width:21%;background:var(--purple)"></div></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels p2">
+    <div class="panel">
+      <div class="ph"><span class="pt">S1 Abril — Entradas da Semana</span></div>
+      <div class="pb"><div class="cb h180"><canvas id="cEntradas"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Leads Indicados S1 — Estágios</span><span class="ptag">2 leads</span></div>
+      <div class="pb" style="display:flex;align-items:center;justify-content:center;height:180px;">
+        <div style="text-align:center">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:2.8rem;font-weight:600;color:var(--green)">2</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem">100% Convertido</div>
+          <div style="margin-top:.8rem;display:flex;gap:.5rem;justify-content:center">
+            <div style="background:var(--green-d);border-radius:4px;padding:3px 10px;font-size:.7rem;color:var(--green);font-weight:600">Rayana Vasconcelos</div>
+            <div style="background:var(--green-d);border-radius:4px;padding:3px 10px;font-size:.7rem;color:var(--green);font-weight:600">Lucas Barros</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ INBOUND ══ -->
+<div class="view" id="view-inbound">
+  <div class="kpi-row">
+    <div class="kpi-cell"><div class="kpi-label">Semana S1</div><div class="kpi-num">1</div><div class="kpi-sub">01/04 · Apresentação</div></div>
+    <div class="kpi-cell"><div class="kpi-label">EV</div><div class="kpi-num">1</div><div class="kpi-sub">Alexsando Morais</div></div>
+    <div class="kpi-cell"><div class="kpi-label">EC</div><div class="kpi-num">1</div><div class="kpi-sub">Aisy Lyra</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Acumulado Abril</div><div class="kpi-num cyan">1</div><div class="kpi-sub">1ª semana do mês</div></div>
+  </div>
+
+  <div class="panels p64">
+    <div class="panel">
+      <div class="ph"><span class="pt">Em Aberto — Inbound</span><span class="ptag">12 leads</span></div>
+      <div class="pb">
+        <ul class="sl">
+          <li class="si"><span class="sn">Negociação</span><span class="sp s-ne">6</span></li>
+          <li class="si"><span class="sn">Qualificação</span><span class="sp s-qu">3</span></li>
+          <li class="si"><span class="sn">Apresentação</span><span class="sp s-ap">2</span></li>
+          <li class="si"><span class="sn">No Show</span><span class="sp s-ns">1</span></li>
+        </ul>
+        <div style="margin-top:1rem">
+          <div class="cb h140"><canvas id="cInbAbStg"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Aberto por EC</span></div>
+      <div class="pb">
+        <ul class="rl">
+          <li class="ri"><div class="rt"><span class="rn">Lucas Barros</span><div class="rr"><span class="rv">6</span><span class="rp">50%</span></div></div><div class="bar"><div class="bi" style="width:50%;background:var(--blue)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Rayana Vasconcelos</span><div class="rr"><span class="rv">3</span><span class="rp">25%</span></div></div><div class="bar"><div class="bi" style="width:25%;background:var(--purple)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Aisy Lyra</span><div class="rr"><span class="rv">3</span><span class="rp">25%</span></div></div><div class="bar"><div class="bi" style="width:25%;background:var(--cyan)"></div></div></li>
+        </ul>
+        <div style="margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--border2)">
+          <div class="kpi-label" style="margin-bottom:.5rem">EV — 100% Alexsando Morais</div>
+          <ul class="rl">
+            <li class="ri"><div class="rt"><span class="rn">Alexsando Morais</span><div class="rr"><span class="rv">12</span><span class="rp">100%</span></div></div><div class="bar"><div class="bi" style="width:100%;background:var(--cyan)"></div></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OUTBOUND ══ -->
+<div class="view" id="view-outbound">
+  <div class="kpi-row">
+    <div class="kpi-cell"><div class="kpi-label">Semana S1</div><div class="kpi-num">2</div><div class="kpi-sub">01 e 02/04</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Alexsando Morais</div><div class="kpi-num">2</div><div class="kpi-sub">100% da semana</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Estágios S1</div><div class="kpi-num cyan">2</div><div class="kpi-sub">Apres. + Negoc.</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Acumulado Abril</div><div class="kpi-num cyan">2</div><div class="kpi-sub">1ª semana do mês</div></div>
+  </div>
+
+  <div class="panels p2">
+    <div class="panel">
+      <div class="ph"><span class="pt">S1 Abril — Detalhes</span></div>
+      <div class="pb">
+        <ul class="sl">
+          <li class="si"><span class="sn">01/04 · Apresentação · Rayana Vasconcelos</span><span class="sp s-ap">1</span></li>
+          <li class="si"><span class="sn">02/04 · Negociação · Lucas Barros</span><span class="sp s-ne">1</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Em Aberto — Outbound</span><span class="ptag">16 leads</span></div>
+      <div class="pb">
+        <ul class="sl">
+          <li class="si"><span class="sn">Qualificação</span><span class="sp s-qu">6</span></li>
+          <li class="si"><span class="sn">Apresentação</span><span class="sp s-ap">4</span></li>
+          <li class="si"><span class="sn">Negociação</span><span class="sp s-ne">3</span></li>
+          <li class="si"><span class="sn">No Show</span><span class="sp s-ns">3</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels p2">
+    <div class="panel">
+      <div class="ph"><span class="pt">EV — Outbound Aberto</span></div>
+      <div class="pb">
+        <ul class="rl">
+          <li class="ri"><div class="rt"><span class="rn">Alexsando Morais</span><div class="rr"><span class="rv">13</span><span class="rp">81%</span></div></div><div class="bar"><div class="bi" style="width:81%;background:var(--cyan)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Yasmin Fernandes</span><div class="rr"><span class="rv">3</span><span class="rp">19%</span></div></div><div class="bar"><div class="bi" style="width:19%;background:var(--gold)"></div></div></li>
+        </ul>
+        <div style="margin-top:.8rem;padding:.6rem .8rem;background:var(--s2);border-radius:6px;font-size:.7rem;color:var(--muted);">
+          ℹ️ Yasmin Fernandes: leads em aberto herdados de períodos anteriores
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">EC — Outbound Aberto</span></div>
+      <div class="pb">
+        <ul class="rl">
+          <li class="ri"><div class="rt"><span class="rn">Lucas Barros</span><div class="rr"><span class="rv">7</span><span class="rp">44%</span></div></div><div class="bar"><div class="bi" style="width:44%;background:var(--blue)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Aisy Lyra</span><div class="rr"><span class="rv">6</span><span class="rp">38%</span></div></div><div class="bar"><div class="bi" style="width:38%;background:var(--cyan)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Rayana Vasconcelos</span><div class="rr"><span class="rv">3</span><span class="rp">19%</span></div></div><div class="bar"><div class="bi" style="width:19%;background:var(--purple)"></div></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LEADS INDICADOS ══ -->
+<div class="view" id="view-leads">
+  <div class="kpi-row">
+    <div class="kpi-cell"><div class="kpi-label">Semana S1</div><div class="kpi-num">2</div><div class="kpi-sub">01 e 02/04</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Rayana Vasconcelos</div><div class="kpi-num">1</div><div class="kpi-sub">01/04 · Convertido</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Lucas Barros</div><div class="kpi-num">1</div><div class="kpi-sub">02/04 · Convertido</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Taxa Conversão</div><div class="kpi-num cyan">100%</div><div class="kpi-sub">2 de 2 convertidos</div></div>
+  </div>
+
+  <div class="panels p2">
+    <div class="panel">
+      <div class="ph"><span class="pt">Estágios — S1 Abril</span><span class="ptag">2 leads</span></div>
+      <div class="pb">
+        <ul class="sl">
+          <li class="si"><span class="sn">Convertido</span><span class="sp s-co">2</span></li>
+        </ul>
+        <div style="margin-top:1.2rem;text-align:center;padding:1rem;background:var(--green-d);border-radius:8px;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:600;color:var(--green)">100%</div>
+          <div style="font-size:.72rem;color:var(--green);margin-top:.3rem;font-weight:500">Taxa de Conversão — Semana Perfeita</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Por EC — S1 Abril</span></div>
+      <div class="pb">
+        <ul class="rl">
+          <li class="ri"><div class="rt"><span class="rn">Rayana Vasconcelos</span><div class="rr"><span class="rv">1</span><span class="rp">50%</span></div></div><div class="bar"><div class="bi" style="width:50%;background:var(--purple)"></div></div></li>
+          <li class="ri"><div class="rt"><span class="rn">Lucas Barros</span><div class="rr"><span class="rv">1</span><span class="rp">50%</span></div></div><div class="bar"><div class="bi" style="width:50%;background:var(--blue)"></div></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EM ABERTO ══ -->
+<div class="view" id="view-aberto">
+  <div class="sec-h">Inbound em Aberto</div>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);max-width:600px;">
+    <div class="kpi-cell"><div class="kpi-label">Total</div><div class="kpi-num">12</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Negociação</div><div class="kpi-num">6</div><div class="kpi-sub">50% do total</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Qualificação</div><div class="kpi-num">3</div><div class="kpi-sub">25% do total</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Apresentação</div><div class="kpi-num">2</div><div class="kpi-sub">17% do total</div></div>
+  </div>
+  <div class="panels p2" style="margin-bottom:1.5rem">
+    <div class="panel"><div class="ph"><span class="pt">EV — Inbound Aberto</span></div><div class="pb"><ul class="rl"><li class="ri"><div class="rt"><span class="rn">Alexsando Morais</span><div class="rr"><span class="rv">12</span><span class="rp">100%</span></div></div><div class="bar"><div class="bi" style="width:100%;background:var(--cyan)"></div></div></li></ul></div></div>
+    <div class="panel"><div class="ph"><span class="pt">EC — Inbound Aberto</span></div><div class="pb"><ul class="rl"><li class="ri"><div class="rt"><span class="rn">Lucas Barros</span><div class="rr"><span class="rv">6</span><span class="rp">50%</span></div></div><div class="bar"><div class="bi" style="width:50%;background:var(--blue)"></div></div></li><li class="ri"><div class="rt"><span class="rn">Rayana Vasconcelos</span><div class="rr"><span class="rv">3</span><span class="rp">25%</span></div></div><div class="bar"><div class="bi" style="width:25%;background:var(--purple)"></div></div></li><li class="ri"><div class="rt"><span class="rn">Aisy Lyra</span><div class="rr"><span class="rv">3</span><span class="rp">25%</span></div></div><div class="bar"><div class="bi" style="width:25%;background:var(--cyan)"></div></div></li></ul></div></div>
+  </div>
+
+  <div class="sec-h">Outbound em Aberto</div>
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);max-width:600px;">
+    <div class="kpi-cell"><div class="kpi-label">Total</div><div class="kpi-num">16</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Qualificação</div><div class="kpi-num">6</div><div class="kpi-sub">38% do total</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Apresentação</div><div class="kpi-num">4</div><div class="kpi-sub">25% do total</div></div>
+    <div class="kpi-cell"><div class="kpi-label">Negociação</div><div class="kpi-num">3</div><div class="kpi-sub">19% do total</div></div>
+  </div>
+  <div class="panels p2">
+    <div class="panel"><div class="ph"><span class="pt">EV — Outbound Aberto</span></div><div class="pb"><ul class="rl"><li class="ri"><div class="rt"><span class="rn">Alexsando Morais</span><div class="rr"><span class="rv">13</span><span class="rp">81%</span></div></div><div class="bar"><div class="bi" style="width:81%;background:var(--cyan)"></div></div></li><li class="ri"><div class="rt"><span class="rn">Yasmin Fernandes</span><div class="rr"><span class="rv">3</span><span class="rp">19%</span></div></div><div class="bar"><div class="bi" style="width:19%;background:var(--gold)"></div></div></li></ul></div></div>
+    <div class="panel"><div class="ph"><span class="pt">EC — Outbound Aberto</span></div><div class="pb"><ul class="rl"><li class="ri"><div class="rt"><span class="rn">Lucas Barros</span><div class="rr"><span class="rv">7</span><span class="rp">44%</span></div></div><div class="bar"><div class="bi" style="width:44%;background:var(--blue)"></div></div></li><li class="ri"><div class="rt"><span class="rn">Aisy Lyra</span><div class="rr"><span class="rv">6</span><span class="rp">38%</span></div></div><div class="bar"><div class="bi" style="width:38%;background:var(--cyan)"></div></div></li><li class="ri"><div class="rt"><span class="rn">Rayana Vasconcelos</span><div class="rr"><span class="rv">3</span><span class="rp">19%</span></div></div><div class="bar"><div class="bi" style="width:19%;background:var(--purple)"></div></div></li></ul></div></div>
+  </div>
+</div>
+
+<!-- ══ EXECUTIVOS ══ -->
+<div class="view" id="view-exec">
+
+  <div class="sec-h">Executivo de Vendas</div>
+  <div class="info-banner"><span>ℹ️ A partir de Abril/2026 o único EV ativo é Alexsando Morais. Yasmin Fernandes possui leads em aberto de períodos anteriores.</span></div>
+
+  <div class="filters" id="evF">
+    <button class="fb on" onclick="sEV('alex',this)">Alexsando Morais</button>
+    <button class="fb" onclick="sEV('yasmin',this)">Yasmin Fernandes</button>
+  </div>
+
+  <div id="ev-alex" class="db show">
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-cell"><div class="kpi-label">Inbound Aberto</div><div class="kpi-num cyan">12</div><div class="kpi-sub">100% do In</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Outbound Aberto</div><div class="kpi-num cyan">13</div><div class="kpi-sub">81% do Out</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Total Aberto</div><div class="kpi-num">25</div><div class="kpi-sub">89% do total</div></div>
+      <div class="kpi-cell"><div class="kpi-label">S1 Abril</div><div class="kpi-num">3</div><div class="kpi-sub">In 1 · Out 2</div></div>
+    </div>
+    <div class="panel"><div class="ph"><span class="pt">Alexsando Morais — Inbound vs Outbound Aberto</span></div><div class="pb"><div class="cb h220"><canvas id="cAlexComp"></canvas></div></div></div>
+  </div>
+
+  <div id="ev-yasmin" class="db">
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-cell"><div class="kpi-label">Outbound Aberto</div><div class="kpi-num">3</div><div class="kpi-sub">19% do Out aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Inbound Aberto</div><div class="kpi-num">0</div><div class="kpi-sub">—</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Status</div><div class="kpi-num" style="font-size:1rem;padding-top:.4rem;color:var(--gold)">Herdado</div><div class="kpi-sub">períodos anteriores</div></div>
+    </div>
+  </div>
+
+  <div class="sec-h" style="margin-top:2rem">Executivo de Contas</div>
+  <div class="filters" id="ecF">
+    <button class="fb on" onclick="sEC('all',this)">Todos</button>
+    <button class="fb" onclick="sEC('lucas',this)">Lucas Barros</button>
+    <button class="fb" onclick="sEC('rayana',this)">Rayana Vasconcelos</button>
+    <button class="fb" onclick="sEC('aisy',this)">Aisy Lyra</button>
+  </div>
+
+  <div id="ec-all" class="db show">
+    <div class="panel"><div class="ph"><span class="pt">Comparativo EC — Em Aberto Total (In + Out)</span></div><div class="pb"><div class="cb h260"><canvas id="cECComp"></canvas></div></div></div>
+  </div>
+  <div id="ec-lucas" class="db">
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-cell"><div class="kpi-label">Total Aberto</div><div class="kpi-num">13</div><div class="kpi-sub">46% do total</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Inbound</div><div class="kpi-num cyan">6</div><div class="kpi-sub">50% In aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Outbound</div><div class="kpi-num cyan">7</div><div class="kpi-sub">44% Out aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Leads S1</div><div class="kpi-num">1</div><div class="kpi-sub">Convertido</div></div>
+    </div>
+  </div>
+  <div id="ec-rayana" class="db">
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-cell"><div class="kpi-label">Total Aberto</div><div class="kpi-num">6</div><div class="kpi-sub">21% do total</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Inbound</div><div class="kpi-num cyan">3</div><div class="kpi-sub">25% In aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Outbound</div><div class="kpi-num cyan">3</div><div class="kpi-sub">19% Out aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Leads S1</div><div class="kpi-num">1</div><div class="kpi-sub">Convertido</div></div>
+    </div>
+  </div>
+  <div id="ec-aisy" class="db">
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-cell"><div class="kpi-label">Total Aberto</div><div class="kpi-num">9</div><div class="kpi-sub">32% do total</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Inbound</div><div class="kpi-num cyan">3</div><div class="kpi-sub">25% In aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Outbound</div><div class="kpi-num cyan">6</div><div class="kpi-sub">38% Out aberto</div></div>
+      <div class="kpi-cell"><div class="kpi-label">Leads S1</div><div class="kpi-num">0</div><div class="kpi-sub">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HISTÓRICO ══ -->
+<div class="view" id="view-hist">
+  <div class="panel" style="margin-bottom:1rem">
+    <div class="ph"><span class="pt">Entradas por Mês — Inbound · Outbound · Leads Indicados (últimos 6 meses)</span></div>
+    <div class="pb"><div class="cb h260"><canvas id="cHistMes"></canvas></div></div>
+  </div>
+  <div class="panels p3">
+    <div class="panel">
+      <div class="ph"><span class="pt">Inbound</span></div>
+      <div class="pb"><div class="mc">
+        <div class="mchip"><span class="mlb">Nov</span><span class="mv">11</span></div>
+        <div class="mchip"><span class="mlb">Dez</span><span class="mv">14</span></div>
+        <div class="mchip"><span class="mlb">Jan</span><span class="mv">26</span></div>
+        <div class="mchip"><span class="mlb">Fev</span><span class="mv">18</span></div>
+        <div class="mchip"><span class="mlb">Mar</span><span class="mv">17</span></div>
+        <div class="mchip"><span class="mlb">Abr</span><span class="mv hi">1</span></div>
+      </div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Outbound</span></div>
+      <div class="pb"><div class="mc">
+        <div class="mchip"><span class="mlb">Nov</span><span class="mv">11</span></div>
+        <div class="mchip"><span class="mlb">Dez</span><span class="mv">13</span></div>
+        <div class="mchip"><span class="mlb">Jan</span><span class="mv">11</span></div>
+        <div class="mchip"><span class="mlb">Fev</span><span class="mv">10</span></div>
+        <div class="mchip"><span class="mlb">Mar</span><span class="mv">19</span></div>
+        <div class="mchip"><span class="mlb">Abr</span><span class="mv hi">2</span></div>
+      </div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Leads Indicados</span></div>
+      <div class="pb"><div class="mc">
+        <div class="mchip"><span class="mlb">Nov</span><span class="mv">26</span></div>
+        <div class="mchip"><span class="mlb">Dez</span><span class="mv">21</span></div>
+        <div class="mchip"><span class="mlb">Jan</span><span class="mv">13</span></div>
+        <div class="mchip"><span class="mlb">Fev</span><span class="mv">4</span></div>
+        <div class="mchip"><span class="mlb">Mar</span><span class="mv">38</span></div>
+        <div class="mchip"><span class="mlb">Abr</span><span class="mv hi">2</span></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:1rem">
+    <div class="ph"><span class="pt">S1 Abril — Resumo da Semana</span></div>
+    <div class="pb">
+      <table class="ht">
+        <thead><tr><th>Categoria</th><th>S1 Abril</th><th>Observação</th></tr></thead>
+        <tbody>
+          <tr><td class="td-l">Inbound Recebidas</td><td>1</td><td style="color:var(--muted);font-family:'Inter',sans-serif;font-size:.75rem">Alexsando Morais · Aisy Lyra</td></tr>
+          <tr><td class="td-l">Outbound Convertidas</td><td>2</td><td style="color:var(--muted);font-family:'Inter',sans-serif;font-size:.75rem">Alexsando Morais · 1 Apres. + 1 Negoc.</td></tr>
+          <tr><td class="td-l">Leads Indicados</td><td>2</td><td style="color:var(--green);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600">100% Convertido ✓</td></tr>
+          <tr><td class="td-l">Inbound em Aberto</td><td>12</td><td style="color:var(--muted);font-family:'Inter',sans-serif;font-size:.75rem">100% Alexsando Morais</td></tr>
+          <tr><td class="td-l">Outbound em Aberto</td><td>16</td><td style="color:var(--muted);font-family:'Inter',sans-serif;font-size:.75rem">Alex 13 · Yasmin 3 (herdado)</td></tr>
+          <tr><td class="td-l">Total em Aberto</td><td>28</td><td style="color:var(--muted);font-family:'Inter',sans-serif;font-size:.75rem">In 12 · Out 16</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="fonte">FONTE: DIÁRIO SDR — PLANILHA DIARIO__-_SDR_-_S1_Abril.xlsx · DADOS EXTRAÍDOS AUTOMATICAMENTE · S1 ABR/2026</div>
+</main>
+
+<script>
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#7A8FA6';
+Chart.defaults.plugins.legend.position='bottom';
+Chart.defaults.plugins.legend.labels.boxWidth=9;
+Chart.defaults.plugins.legend.labels.padding=12;
+Chart.defaults.plugins.legend.labels.color='#7A8FA6';
+
+const G={color:'rgba(0,0,0,0.04)',drawBorder:false};
+const SC={x:{grid:G,ticks:{color:'#B8C8D8'}},y:{grid:G,ticks:{color:'#B8C8D8'}}};
+const C={cy:'#007A85',bl:'#2563EB',gr:'#16A34A',re:'#DC2626',pu:'#7C3AED',or:'#EA580C',mu:'#CBD5E1',go:'#CA8A04'};
+
+function bar(id,labels,ds,h=false){
+  const el=document.getElementById(id);if(!el)return;
+  new Chart(el,{type:'bar',data:{labels,datasets:ds},options:{indexAxis:h?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:ds.length>1}},scales:SC}});
+}
+function donut(id,labels,data,colors){
+  const el=document.getElementById(id);if(!el)return;
+  new Chart(el,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:1,borderColor:'#FFF'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:8,padding:5}}}}});
+}
+function line(id,labels,ds){
+  const el=document.getElementById(id);if(!el)return;
+  new Chart(el,{type:'line',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:ds.length>1}},scales:SC,elements:{line:{tension:0.4},point:{radius:4,hoverRadius:6}}}});
+}
+
+// Visão Geral
+bar('cFunil',['Negociação','Qualificação','Apresentação','No Show'],
+  [{label:'Inbound',data:[6,3,2,1],backgroundColor:C.cy},
+   {label:'Outbound',data:[3,6,4,3],backgroundColor:C.bl}]);
+
+donut('cAbertoEC',['Lucas Barros','Aisy Lyra','Rayana Vasconcelos'],
+  [13,9,6],[C.bl,C.cy,C.pu]);
+
+bar('cEntradas',['Inbound','Outbound','Leads Indicados'],
+  [{label:'S1 Abril',data:[1,2,2],backgroundColor:[C.cy,C.bl,C.gr]}]);
+
+// Inbound
+bar('cInbAbStg',['Negociação','Qualificação','Apresentação','No Show'],
+  [{label:'Em Aberto',data:[6,3,2,1],backgroundColor:[C.pu,C.bl,C.cy,C.re]}]);
+
+// Executivos
+bar('cAlexComp',['Inbound Aberto','Outbound Aberto','S1 Inbound','S1 Outbound'],
+  [{label:'Alexsando Morais',data:[12,13,1,2],backgroundColor:[C.cy,C.bl,'rgba(0,122,133,0.4)','rgba(37,99,235,0.4)']}]);
+
+bar('cECComp',['Lucas Barros','Aisy Lyra','Rayana Vasconcelos'],
+  [{label:'Inbound Aberto',data:[6,3,3],backgroundColor:C.cy},
+   {label:'Outbound Aberto',data:[7,6,3],backgroundColor:C.bl}]);
+
+// Histórico
+line('cHistMes',['Nov','Dez','Jan','Fev','Mar','Abr'],
+  [{label:'Inbound',data:[11,14,26,18,17,1],borderColor:C.cy,backgroundColor:'rgba(0,122,133,0.07)',fill:true},
+   {label:'Outbound',data:[11,13,11,10,19,2],borderColor:C.bl,backgroundColor:'rgba(37,99,235,0.07)',fill:true},
+   {label:'Leads Indicados',data:[26,21,13,4,38,2],borderColor:C.go,backgroundColor:'rgba(202,138,4,0.07)',fill:true}]);
+
+// Navigation
+function go(n,b){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+n).classList.add('active');
+  b.classList.add('active');
+}
+function sEV(n,b){
+  document.querySelectorAll('#evF .fb').forEach(x=>x.classList.remove('on','ob'));
+  b.classList.add('on');
+  ['alex','yasmin'].forEach(x=>{
+    const el=document.getElementById('ev-'+x);
+    if(el)el.classList.toggle('show',x===n);
+  });
+}
+function sEC(n,b){
+  document.querySelectorAll('#ecF .fb').forEach(x=>x.classList.remove('on','ob'));
+  b.classList.add(n==='all'?'on':'ob');
+  ['all','lucas','rayana','aisy'].forEach(x=>{
+    const el=document.getElementById('ec-'+x);
+    if(el)el.classList.toggle('show',x===n);
+  });
+}
+</script>
+</body>
+</html>
